@@ -168,8 +168,8 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
             className="w-full h-full border-0"
             title={currentTab?.title}
             allow="accelerometer; autoplay; camera; clipboard-read; clipboard-write; encrypted-media; fullscreen; geolocation; gyroscope; magnetometer; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
-            referrerPolicy="strict-origin-when-cross-origin"
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-downloads"
+            referrerPolicy="no-referrer-when-downgrade"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-downloads allow-modals"
           />
           
           {/* Task Builder Overlay */}
@@ -318,7 +318,7 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
                         className="w-full h-full border-0 pointer-events-none"
                         title={tab.title}
                         allow="accelerometer; autoplay; camera; clipboard-read; clipboard-write; encrypted-media; fullscreen; geolocation; gyroscope; magnetometer; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
-                        referrerPolicy="strict-origin-when-cross-origin"
+                        referrerPolicy="no-referrer-when-downgrade"
                         sandbox="allow-same-origin allow-scripts"
                       />
                     </div>

@@ -180,7 +180,7 @@ export const TaskBuilder = ({ tabId, tab, onClose, groups, setGroups }: TaskBuil
         <div className="mb-6">
           <Button
             onClick={() => setShowAddFrame(!showAddFrame)}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Task Frame
@@ -191,7 +191,7 @@ export const TaskBuilder = ({ tabId, tab, onClose, groups, setGroups }: TaskBuil
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full justify-start text-white border-white/20 hover:bg-white/10"
+                className="w-full justify-start text-white border-white/20 hover:bg-white/10 font-medium"
                 onClick={() => addTaskFrame('chart')}
               >
                 <TrendingUp className="h-4 w-4 mr-2" />
@@ -200,7 +200,7 @@ export const TaskBuilder = ({ tabId, tab, onClose, groups, setGroups }: TaskBuil
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full justify-start text-white border-white/20 hover:bg-white/10"
+                className="w-full justify-start text-white border-white/20 hover:bg-white/10 font-medium"
                 onClick={() => addTaskFrame('indicator')}
               >
                 <BarChart3 className="h-4 w-4 mr-2" />
@@ -209,7 +209,7 @@ export const TaskBuilder = ({ tabId, tab, onClose, groups, setGroups }: TaskBuil
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full justify-start text-white border-white/20 hover:bg-white/10"
+                className="w-full justify-start text-white border-white/20 hover:bg-white/10 font-medium"
                 onClick={() => addTaskFrame('button')}
               >
                 <DollarSign className="h-4 w-4 mr-2" />
@@ -218,7 +218,7 @@ export const TaskBuilder = ({ tabId, tab, onClose, groups, setGroups }: TaskBuil
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full justify-start text-white border-white/20 hover:bg-white/10"
+                className="w-full justify-start text-white border-white/20 hover:bg-white/10 font-medium"
                 onClick={() => addTaskFrame('custom')}
               >
                 <Target className="h-4 w-4 mr-2" />
@@ -248,7 +248,7 @@ export const TaskBuilder = ({ tabId, tab, onClose, groups, setGroups }: TaskBuil
                     {frame.type === 'indicator' && <BarChart3 className="h-4 w-4 text-green-300" />}
                     {frame.type === 'button' && <DollarSign className="h-4 w-4 text-yellow-300" />}
                     {frame.type === 'custom' && <Target className="h-4 w-4 text-purple-300" />}
-                    <span className="text-white text-sm capitalize">{frame.type} Frame</span>
+                    <span className="text-white text-sm capitalize font-medium">{frame.type} Frame</span>
                   </div>
                   <Button
                     size="sm"
@@ -262,7 +262,7 @@ export const TaskBuilder = ({ tabId, tab, onClose, groups, setGroups }: TaskBuil
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
-                <div className="text-xs text-blue-200 mt-1">
+                <div className="text-xs text-blue-200 mt-1 font-medium">
                   Conditions: {frame.conditions.length} | Actions: {frame.actions.length}
                 </div>
               </div>
@@ -277,7 +277,7 @@ export const TaskBuilder = ({ tabId, tab, onClose, groups, setGroups }: TaskBuil
             
             {/* AI Command */}
             <div>
-              <label className="text-white text-sm block mb-2">AI Command</label>
+              <label className="text-white text-sm block mb-2 font-medium">AI Command</label>
               <Textarea
                 value={selectedFrameData.aiCommand}
                 onChange={(e) => updateAICommand(selectedFrameData.id, e.target.value)}
@@ -290,31 +290,41 @@ export const TaskBuilder = ({ tabId, tab, onClose, groups, setGroups }: TaskBuil
             {/* Conditions */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-white text-sm">Conditions</label>
+                <label className="text-white text-sm font-medium">Conditions</label>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="text-white border-white/20 hover:bg-white/10"
+                  className="text-white border-white/20 hover:bg-white/10 font-medium"
                   onClick={() => addCondition(selectedFrameData.id)}
                 >
                   <Plus className="h-3 w-3 mr-1" />
-                  Add
+                  Add Condition
                 </Button>
               </div>
-              {selectedFrameData.conditions.length === 0 && (
-                <p className="text-blue-200 text-xs">No conditions added</p>
+              {selectedFrameData.conditions.length === 0 ? (
+                <p className="text-blue-200 text-xs">No conditions added yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {selectedFrameData.conditions.map((condition, index) => (
+                    <div key={condition.id} className="bg-white/5 p-2 rounded border border-white/10">
+                      <div className="text-xs text-white font-medium">
+                        Condition {index + 1}: {condition.type} {condition.operator} {condition.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
             {/* Actions */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-white text-sm">Actions</label>
+                <label className="text-white text-sm font-medium">Actions</label>
                 <div className="flex space-x-1">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-green-300 border-green-500/20 hover:bg-green-500/20"
+                    className="text-green-300 border-green-500/20 hover:bg-green-500/20 font-medium px-2 py-1"
                     onClick={() => addAction(selectedFrameData.id, 'buy')}
                   >
                     Buy
@@ -322,15 +332,25 @@ export const TaskBuilder = ({ tabId, tab, onClose, groups, setGroups }: TaskBuil
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-red-300 border-red-500/20 hover:bg-red-500/20"
+                    className="text-red-300 border-red-500/20 hover:bg-red-500/20 font-medium px-2 py-1"
                     onClick={() => addAction(selectedFrameData.id, 'sell')}
                   >
                     Sell
                   </Button>
                 </div>
               </div>
-              {selectedFrameData.actions.length === 0 && (
-                <p className="text-blue-200 text-xs">No actions added</p>
+              {selectedFrameData.actions.length === 0 ? (
+                <p className="text-blue-200 text-xs">No actions added yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {selectedFrameData.actions.map((action, index) => (
+                    <div key={action.id} className="bg-white/5 p-2 rounded border border-white/10">
+                      <div className="text-xs text-white font-medium">
+                        Action {index + 1}: {action.type.toUpperCase()} at {action.price} price
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -340,7 +360,7 @@ export const TaskBuilder = ({ tabId, tab, onClose, groups, setGroups }: TaskBuil
         <div className="mt-6 pt-4 border-t border-white/20">
           <Button
             onClick={saveTask}
-            className="w-full bg-green-600 hover:bg-green-700"
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-medium"
           >
             <Play className="h-4 w-4 mr-2" />
             Save & Activate Task
@@ -372,7 +392,7 @@ export const TaskBuilder = ({ tabId, tab, onClose, groups, setGroups }: TaskBuil
             onMouseDown={(e) => handleMouseDown(frame.id, e)}
             onClick={() => setSelectedFrame(frame.id)}
           >
-            <div className="absolute -top-6 left-0 bg-black/80 px-2 py-1 rounded text-xs text-white">
+            <div className="absolute -top-6 left-0 bg-black/80 px-2 py-1 rounded text-xs text-white font-medium">
               {frame.type} Frame
             </div>
             <div className="absolute top-2 right-2">
