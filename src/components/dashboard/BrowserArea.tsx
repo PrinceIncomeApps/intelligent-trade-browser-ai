@@ -9,7 +9,11 @@ import {
   Pause, 
   Bot,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  X,
+  Maximize2,
+  Settings,
+  Trash2
 } from 'lucide-react';
 
 interface BrowserAreaProps {
@@ -20,6 +24,7 @@ interface BrowserAreaProps {
 export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
   const [selectedGroup, setSelectedGroup] = useState(groups[0]?.id || null);
   const [url, setUrl] = useState('');
+  const [fullScreenTab, setFullScreenTab] = useState(null);
 
   const selectedGroupData = groups.find(g => g.id === selectedGroup);
 
@@ -46,7 +51,7 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
       id: Date.now(),
       url: formattedUrl,
       title: formattedUrl.replace(/^https?:\/\//, '').split('/')[0],
-      isActive: false,
+      isActive: true,
       aiTask: null
     };
 
@@ -62,6 +67,96 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
     setGroups(updatedGroups);
     setUrl('');
   };
+
+  const deleteTab = (tabId: number) => {
+    const updatedGroups = groups.map(group => ({
+      ...group,
+      tabs: group.tabs.filter((tab: any) => tab.id !== tabId)
+    }));
+    setGroups(updatedGroups);
+    
+    // Close full screen if this tab was open
+    if (fullScreenTab === tabId) {
+      setFullScreenTab(null);
+    }
+  };
+
+  const toggleTabStatus = (tabId: number) => {
+    const updatedGroups = groups.map(group => ({
+      ...group,
+      tabs: group.tabs.map((tab: any) => 
+        tab.id === tabId 
+          ? { ...tab, isActive: !tab.isActive }
+          : tab
+      )
+    }));
+    setGroups(updatedGroups);
+  };
+
+  const openFullScreen = (tabId: number) => {
+    setFullScreenTab(tabId);
+  };
+
+  const closeFullScreen = () => {
+    setFullScreenTab(null);
+  };
+
+  // Full screen view
+  if (fullScreenTab) {
+    const currentTab = selectedGroupData?.tabs.find((tab: any) => tab.id === fullScreenTab);
+    
+    return (
+      <div className="flex-1 flex flex-col">
+        {/* Full Screen Header */}
+        <div className="bg-black/20 backdrop-blur-lg border-b border-white/10 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <h3 className="text-white font-medium">{currentTab?.title}</h3>
+              <span className="text-blue-200 text-sm">{currentTab?.url}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-blue-300 hover:bg-blue-500/20"
+                onClick={() => toggleTabStatus(fullScreenTab)}
+              >
+                {currentTab?.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                {currentTab?.isActive ? 'Pause' : 'Start'}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-purple-300 hover:bg-purple-500/20"
+              >
+                <Bot className="h-4 w-4 mr-1" />
+                AI Task
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10"
+                onClick={closeFullScreen}
+              >
+                <X className="h-4 w-4" />
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Full Screen Browser Content */}
+        <div className="flex-1 bg-white">
+          <iframe
+            src={currentTab?.url}
+            className="w-full h-full border-0"
+            title={currentTab?.title}
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col">
@@ -142,33 +237,71 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {selectedGroupData.tabs.map((tab: any) => (
-                  <div key={tab.id} className="bg-white/5 rounded-lg border border-white/10 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h3 className="text-white font-medium">{tab.title}</h3>
-                        <p className="text-blue-200 text-sm">{tab.url}</p>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button size="sm" variant="ghost" className="text-green-300 hover:bg-green-500/20">
-                          <Play className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="text-blue-300 hover:bg-blue-500/20">
-                          <Bot className="h-4 w-4" />
-                        </Button>
+                  <div key={tab.id} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+                    {/* Tab Header */}
+                    <div className="p-4 border-b border-white/10">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-medium truncate">{tab.title}</h3>
+                          <p className="text-blue-200 text-sm truncate">{tab.url}</p>
+                        </div>
+                        <div className="flex space-x-1 ml-2">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-blue-300 hover:bg-blue-500/20 p-1"
+                            onClick={() => openFullScreen(tab.id)}
+                          >
+                            <Maximize2 className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-green-300 hover:bg-green-500/20 p-1"
+                            onClick={() => toggleTabStatus(tab.id)}
+                          >
+                            {tab.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-purple-300 hover:bg-purple-500/20 p-1"
+                          >
+                            <Settings className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-red-300 hover:bg-red-500/20 p-1"
+                            onClick={() => deleteTab(tab.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="bg-black/30 rounded-lg h-40 flex items-center justify-center border border-white/10">
-                      <div className="text-center">
-                        <TrendingUp className="h-8 w-8 text-blue-300 mx-auto mb-2" />
-                        <p className="text-blue-200 text-sm">Browser Preview</p>
-                        <p className="text-blue-300 text-xs">AI Monitoring: Ready</p>
-                      </div>
+                    {/* Tab Preview */}
+                    <div className="h-40 bg-white border-b border-white/10">
+                      <iframe
+                        src={tab.url}
+                        className="w-full h-full border-0 pointer-events-none"
+                        title={tab.title}
+                        sandbox="allow-same-origin allow-scripts"
+                      />
                     </div>
                     
-                    <div className="mt-3 flex items-center justify-between text-xs">
-                      <span className="text-green-300">● Active</span>
-                      <span className="text-blue-200">AI Task: None</span>
+                    {/* Tab Status */}
+                    <div className="p-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className={`flex items-center ${tab.isActive ? 'text-green-300' : 'text-yellow-300'}`}>
+                          <div className={`w-2 h-2 rounded-full mr-2 ${tab.isActive ? 'bg-green-400' : 'bg-yellow-400'}`}></div>
+                          {tab.isActive ? 'Active' : 'Paused'}
+                        </span>
+                        <span className="text-blue-200">
+                          AI Task: {tab.aiTask ? 'Running' : 'None'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
