@@ -13,8 +13,12 @@ import {
   X,
   Maximize2,
   Settings,
-  Trash2
+  Trash2,
+  Target,
+  Move,
+  Square
 } from 'lucide-react';
+import { TaskBuilder } from './TaskBuilder';
 
 interface BrowserAreaProps {
   groups: any[];
@@ -25,6 +29,8 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
   const [selectedGroup, setSelectedGroup] = useState(groups[0]?.id || null);
   const [url, setUrl] = useState('');
   const [fullScreenTab, setFullScreenTab] = useState(null);
+  const [showTaskBuilder, setShowTaskBuilder] = useState(false);
+  const [selectedTabForTask, setSelectedTabForTask] = useState(null);
 
   const selectedGroupData = groups.find(g => g.id === selectedGroup);
 
@@ -52,7 +58,7 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
       url: formattedUrl,
       title: formattedUrl.replace(/^https?:\/\//, '').split('/')[0],
       isActive: true,
-      aiTask: null
+      aiTasks: []
     };
 
     console.log('Creating new tab:', newTab);
@@ -75,7 +81,6 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
     }));
     setGroups(updatedGroups);
     
-    // Close full screen if this tab was open
     if (fullScreenTab === tabId) {
       setFullScreenTab(null);
     }
@@ -101,14 +106,24 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
     setFullScreenTab(null);
   };
 
+  const openTaskBuilder = (tabId: number) => {
+    setSelectedTabForTask(tabId);
+    setShowTaskBuilder(true);
+  };
+
+  const closeTaskBuilder = () => {
+    setShowTaskBuilder(false);
+    setSelectedTabForTask(null);
+  };
+
   // Full screen view
   if (fullScreenTab) {
     const currentTab = selectedGroupData?.tabs.find((tab: any) => tab.id === fullScreenTab);
     
     return (
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative">
         {/* Full Screen Header */}
-        <div className="bg-black/20 backdrop-blur-lg border-b border-white/10 p-4">
+        <div className="bg-black/20 backdrop-blur-lg border-b border-white/10 p-4 z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <h3 className="text-white font-medium">{currentTab?.title}</h3>
@@ -128,6 +143,7 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
                 size="sm"
                 variant="ghost"
                 className="text-purple-300 hover:bg-purple-500/20"
+                onClick={() => openTaskBuilder(fullScreenTab)}
               >
                 <Bot className="h-4 w-4 mr-1" />
                 AI Task
@@ -146,13 +162,26 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
         </div>
 
         {/* Full Screen Browser Content */}
-        <div className="flex-1 bg-white">
+        <div className="flex-1 relative">
           <iframe
             src={currentTab?.url}
             className="w-full h-full border-0"
             title={currentTab?.title}
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+            allow="accelerometer; autoplay; camera; clipboard-read; clipboard-write; encrypted-media; fullscreen; geolocation; gyroscope; magnetometer; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-downloads"
           />
+          
+          {/* Task Builder Overlay */}
+          {showTaskBuilder && (
+            <TaskBuilder 
+              tabId={selectedTabForTask}
+              tab={currentTab}
+              onClose={closeTaskBuilder}
+              groups={groups}
+              setGroups={setGroups}
+            />
+          )}
         </div>
       </div>
     );
@@ -266,8 +295,9 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
                             size="sm" 
                             variant="ghost" 
                             className="text-purple-300 hover:bg-purple-500/20 p-1"
+                            onClick={() => openTaskBuilder(tab.id)}
                           >
-                            <Settings className="h-4 w-4" />
+                            <Target className="h-4 w-4" />
                           </Button>
                           <Button 
                             size="sm" 
@@ -287,6 +317,8 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
                         src={tab.url}
                         className="w-full h-full border-0 pointer-events-none"
                         title={tab.title}
+                        allow="accelerometer; autoplay; camera; clipboard-read; clipboard-write; encrypted-media; fullscreen; geolocation; gyroscope; magnetometer; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
+                        referrerPolicy="strict-origin-when-cross-origin"
                         sandbox="allow-same-origin allow-scripts"
                       />
                     </div>
@@ -299,7 +331,7 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
                           {tab.isActive ? 'Active' : 'Paused'}
                         </span>
                         <span className="text-blue-200">
-                          AI Task: {tab.aiTask ? 'Running' : 'None'}
+                          AI Tasks: {tab.aiTasks?.length || 0}
                         </span>
                       </div>
                     </div>

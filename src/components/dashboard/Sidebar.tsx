@@ -10,7 +10,10 @@ import {
   Folder,
   X,
   Brain,
-  TrendingUp
+  TrendingUp,
+  ChevronDown,
+  ChevronRight,
+  Bot
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -32,6 +35,7 @@ export const Sidebar = ({
 }: SidebarProps) => {
   const [newGroupName, setNewGroupName] = useState('');
   const [showNewGroup, setShowNewGroup] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<number[]>([]);
 
   const addGroup = () => {
     if (newGroupName.trim()) {
@@ -48,6 +52,15 @@ export const Sidebar = ({
 
   const removeGroup = (groupId: number) => {
     setGroups(groups.filter(g => g.id !== groupId));
+    setExpandedGroups(expandedGroups.filter(id => id !== groupId));
+  };
+
+  const toggleGroupExpansion = (groupId: number) => {
+    setExpandedGroups(prev => 
+      prev.includes(groupId) 
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    );
   };
 
   return (
@@ -149,25 +162,63 @@ export const Sidebar = ({
           )}
 
           <div className="space-y-2">
-            {groups.map((group) => (
-              <div key={group.id} className="bg-white/5 rounded-lg p-3 border border-white/10">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    <Folder className="h-4 w-4 text-blue-300" />
-                    <span className="text-white text-sm font-medium">{group.name}</span>
+            {groups.map((group) => {
+              const isExpanded = expandedGroups.includes(group.id);
+              return (
+                <div key={group.id} className="bg-white/5 rounded-lg border border-white/10">
+                  {/* Group Header */}
+                  <div className="p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div 
+                        className="flex items-center space-x-2 cursor-pointer flex-1"
+                        onClick={() => toggleGroupExpansion(group.id)}
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-blue-300" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-blue-300" />
+                        )}
+                        <Folder className="h-4 w-4 text-blue-300" />
+                        <span className="text-white text-sm font-medium">{group.name}</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-300 hover:bg-red-500/20 p-1"
+                        onClick={() => removeGroup(group.id)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="text-blue-200 text-xs">{group.tabs.length} tabs</p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-red-300 hover:bg-red-500/20 p-1"
-                    onClick={() => removeGroup(group.id)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  
+                  {/* Expanded Tab List */}
+                  {isExpanded && group.tabs.length > 0 && (
+                    <div className="border-t border-white/10 p-2 space-y-1">
+                      {group.tabs.map((tab: any) => (
+                        <div key={tab.id} className="flex items-center justify-between p-2 rounded bg-white/5 hover:bg-white/10">
+                          <div className="flex items-center space-x-2 flex-1 min-w-0">
+                            <div className={`w-2 h-2 rounded-full ${tab.isActive ? 'bg-green-400' : 'bg-yellow-400'}`}></div>
+                            <span className="text-white text-xs truncate">{tab.title}</span>
+                          </div>
+                          {tab.aiTasks && tab.aiTasks.length > 0 && (
+                            <Bot className="h-3 w-3 text-purple-300" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Empty State */}
+                  {isExpanded && group.tabs.length === 0 && (
+                    <div className="border-t border-white/10 p-3 text-center">
+                      <p className="text-blue-200 text-xs">No tabs in this group</p>
+                    </div>
+                  )}
                 </div>
-                <p className="text-blue-200 text-xs">{group.tabs.length} tabs</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
