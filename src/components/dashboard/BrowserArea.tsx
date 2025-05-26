@@ -24,21 +24,42 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
   const selectedGroupData = groups.find(g => g.id === selectedGroup);
 
   const addTab = () => {
-    if (!selectedGroup || !url) return;
+    console.log('addTab called', { selectedGroup, url, groups });
+    
+    if (!selectedGroup) {
+      console.log('No group selected');
+      return;
+    }
+    
+    if (!url.trim()) {
+      console.log('No URL provided');
+      return;
+    }
+    
+    // Add https:// if no protocol is specified
+    let formattedUrl = url.trim();
+    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
     
     const newTab = {
       id: Date.now(),
-      url,
-      title: new URL(url).hostname,
+      url: formattedUrl,
+      title: formattedUrl.replace(/^https?:\/\//, '').split('/')[0],
       isActive: false,
       aiTask: null
     };
 
-    setGroups(groups.map(group => 
+    console.log('Creating new tab:', newTab);
+
+    const updatedGroups = groups.map(group => 
       group.id === selectedGroup 
         ? { ...group, tabs: [...group.tabs, newTab] }
         : group
-    ));
+    );
+    
+    console.log('Updated groups:', updatedGroups);
+    setGroups(updatedGroups);
     setUrl('');
   };
 
@@ -51,13 +72,13 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
             <Input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter URL (e.g., https://binance.com)"
+              placeholder="Enter URL (e.g., binance.com or https://binance.com)"
               className="bg-white/10 border-white/20 text-white placeholder-blue-200"
               onKeyPress={(e) => e.key === 'Enter' && addTab()}
             />
             <Button
               onClick={addTab}
-              disabled={!selectedGroup || !url}
+              disabled={!selectedGroup || !url.trim()}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -68,7 +89,11 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
           <div className="flex items-center space-x-2">
             <select 
               value={selectedGroup || ''}
-              onChange={(e) => setSelectedGroup(Number(e.target.value))}
+              onChange={(e) => {
+                const groupId = Number(e.target.value);
+                console.log('Group selected:', groupId);
+                setSelectedGroup(groupId);
+              }}
               className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
             >
               <option value="">Select Group</option>
@@ -108,9 +133,9 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
                 <div className="bg-blue-900/30 rounded-lg p-4 max-w-md mx-auto border border-blue-500/30">
                   <h4 className="text-white font-medium mb-2">Popular Trading Sites:</h4>
                   <div className="space-y-1 text-sm text-blue-200">
-                    <div>• https://binance.com</div>
-                    <div>• https://quotex.io</div>
-                    <div>• https://tradingview.com</div>
+                    <div>• binance.com</div>
+                    <div>• quotex.io</div>
+                    <div>• tradingview.com</div>
                   </div>
                 </div>
               </div>
