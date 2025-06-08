@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -143,14 +142,27 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
     const [isLoading, setIsLoading] = useState(true);
 
     const handleLoad = () => {
+      console.log('Tab loaded successfully:', tab.url);
       setIsLoading(false);
       setHasError(false);
     };
 
     const handleError = () => {
+      console.log('Tab failed to load:', tab.url);
       setIsLoading(false);
       setHasError(true);
     };
+
+    // Auto-hide loading after 10 seconds to prevent infinite loading
+    useState(() => {
+      const timer = setTimeout(() => {
+        if (isLoading) {
+          console.log('Loading timeout for:', tab.url);
+          setIsLoading(false);
+        }
+      }, 10000);
+      return () => clearTimeout(timer);
+    });
 
     if (hasError) {
       return (
@@ -193,22 +205,33 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
             <div className="text-white text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-2"></div>
               <p className="text-sm">Loading {tab.title}...</p>
+              <Button
+                onClick={() => openInNewWindow(tab.url)}
+                variant="ghost"
+                className="mt-4 text-blue-300 hover:bg-blue-500/20"
+                size="sm"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open in Browser Instead
+              </Button>
             </div>
           </div>
         )}
-        <webview
+        <iframe
           key={`${tab.id}-${tab.refreshKey || 0}`}
           src={tab.url}
-          className="w-full h-full"
+          className="w-full h-full border-0"
           onLoad={handleLoad}
           onError={handleError}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
+          referrerPolicy="no-referrer-when-downgrade"
           style={{
             width: '100%',
             height: '100%',
             border: 'none'
           }}
         />
-        {!isFullScreen && (
+        {!isFullScreen && !isLoading && (
           <div className="absolute inset-0 bg-transparent pointer-events-none"></div>
         )}
       </div>
