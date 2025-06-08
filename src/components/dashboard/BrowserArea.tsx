@@ -15,7 +15,8 @@ import {
   Trash2,
   Target,
   Move,
-  Square
+  Square,
+  ExternalLink
 } from 'lucide-react';
 import { TaskBuilder } from './TaskBuilder';
 
@@ -30,6 +31,7 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
   const [fullScreenTab, setFullScreenTab] = useState(null);
   const [showTaskBuilder, setShowTaskBuilder] = useState(false);
   const [selectedTabForTask, setSelectedTabForTask] = useState(null);
+  const [failedIframes, setFailedIframes] = useState(new Set());
 
   const selectedGroupData = groups.find(g => g.id === selectedGroup);
 
@@ -52,8 +54,6 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
       formattedUrl = 'https://' + formattedUrl;
     }
     
-    // For testing, we'll use a proxy or iframe-friendly version
-    // Some sites block iframe embedding, so we'll handle that
     console.log('Formatted URL:', formattedUrl);
     
     const newTab = {
@@ -119,29 +119,19 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
     setSelectedTabForTask(null);
   };
 
-  // Create a proper iframe URL that bypasses CORS issues
-  const getIframeUrl = (originalUrl: string) => {
-    // For development, we can use a proxy service or handle specific sites
-    // You can also implement your own proxy server
-    const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
-    
-    // For popular trading sites, we'll use direct URLs as many support iframe embedding
-    const domain = originalUrl.replace(/^https?:\/\//, '').split('/')[0].toLowerCase();
-    
-    if (domain.includes('tradingview.com')) {
-      return originalUrl;
-    } else if (domain.includes('binance.com')) {
-      return originalUrl;
-    } else if (domain.includes('quotex.io')) {
-      return originalUrl;
-    }
-    
-    return originalUrl;
+  const handleIframeError = (tabId: number) => {
+    console.log('Iframe failed to load for tab:', tabId);
+    setFailedIframes(prev => new Set([...prev, tabId]));
+  };
+
+  const openInNewWindow = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // Full screen view
   if (fullScreenTab) {
     const currentTab = selectedGroupData?.tabs.find((tab: any) => tab.id === fullScreenTab);
+    const hasIframeFailed = failedIframes.has(fullScreenTab);
     
     return (
       <div className="flex-1 flex flex-col relative">
@@ -153,6 +143,15 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
               <span className="text-blue-200 text-sm">{currentTab?.url}</span>
             </div>
             <div className="flex items-center space-x-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-green-300 hover:bg-green-500/20"
+                onClick={() => openInNewWindow(currentTab?.url)}
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                Open External
+              </Button>
               <Button
                 size="sm"
                 variant="ghost"
@@ -186,19 +185,32 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
 
         {/* Full Screen Browser Content */}
         <div className="flex-1 relative">
-          <div className="w-full h-full bg-white">
-            <iframe
-              src={getIframeUrl(currentTab?.url)}
-              className="w-full h-full border-0"
-              title={currentTab?.title}
-              allow="accelerometer; autoplay; camera; clipboard-read; clipboard-write; encrypted-media; fullscreen; geolocation; gyroscope; magnetometer; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share; cross-origin-isolated"
-              referrerPolicy="unsafe-url"
-              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-downloads allow-modals allow-top-navigation allow-top-navigation-by-user-activation"
-              loading="eager"
-              onLoad={() => console.log('Iframe loaded:', currentTab?.url)}
-              onError={(e) => console.error('Iframe error:', e, currentTab?.url)}
-            />
-          </div>
+          {hasIframeFailed ? (
+            <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+              <div className="text-center p-8">
+                <ExternalLink className="h-16 w-16 text-blue-300 mx-auto mb-4" />
+                <h3 className="text-white text-xl font-medium mb-2">Site can't be embedded</h3>
+                <p className="text-blue-200 mb-4">This website doesn't allow embedding. Click below to open it in a new tab.</p>
+                <Button
+                  onClick={() => openInNewWindow(currentTab?.url)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open {currentTab?.title}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full h-full bg-white">
+              <iframe
+                src={currentTab?.url}
+                className="w-full h-full border-0"
+                title={currentTab?.title}
+                onError={() => handleIframeError(fullScreenTab)}
+                onLoad={() => console.log('Iframe loaded successfully:', currentTab?.url)}
+              />
+            </div>
+          )}
           
           {/* Task Builder Overlay */}
           {showTaskBuilder && (
@@ -224,7 +236,7 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
             <Input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter URL (e.g., binance.com, tradingview.com, quotex.io)"
+              placeholder="Enter URL (e.g., google.com, tradingview.com, binance.com)"
               className="bg-white/10 border-white/20 text-white placeholder-blue-200"
               onKeyPress={(e) => e.key === 'Enter' && addTab()}
             />
@@ -283,92 +295,112 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
                 <h3 className="text-xl font-semibold text-white mb-2">No Tabs Open</h3>
                 <p className="text-blue-200 mb-6">Enter a URL above to start browsing and trading</p>
                 <div className="bg-blue-900/30 rounded-lg p-4 max-w-md mx-auto border border-blue-500/30">
-                  <h4 className="text-white font-medium mb-2">Popular Trading Sites:</h4>
+                  <h4 className="text-white font-medium mb-2">Popular Sites to Try:</h4>
                   <div className="space-y-1 text-sm text-blue-200">
-                    <div>• binance.com</div>
-                    <div>• quotex.io</div>
+                    <div>• google.com</div>
                     <div>• tradingview.com</div>
+                    <div>• binance.com</div>
+                    <div>• example.com</div>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {selectedGroupData.tabs.map((tab: any) => (
-                  <div key={tab.id} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden">
-                    {/* Tab Header */}
-                    <div className="p-4 border-b border-white/10">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-medium truncate">{tab.title}</h3>
-                          <p className="text-blue-200 text-sm truncate">{tab.url}</p>
+                {selectedGroupData.tabs.map((tab: any) => {
+                  const hasPreviewFailed = failedIframes.has(tab.id);
+                  return (
+                    <div key={tab.id} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+                      {/* Tab Header */}
+                      <div className="p-4 border-b border-white/10">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-white font-medium truncate">{tab.title}</h3>
+                            <p className="text-blue-200 text-sm truncate">{tab.url}</p>
+                          </div>
+                          <div className="flex space-x-1 ml-2">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-green-300 hover:bg-green-500/20 p-1"
+                              onClick={() => openInNewWindow(tab.url)}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-blue-300 hover:bg-blue-500/20 p-1"
+                              onClick={() => openFullScreen(tab.id)}
+                            >
+                              <Maximize2 className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-green-300 hover:bg-green-500/20 p-1"
+                              onClick={() => toggleTabStatus(tab.id)}
+                            >
+                              {tab.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-purple-300 hover:bg-purple-500/20 p-1"
+                              onClick={() => openTaskBuilder(tab.id)}
+                            >
+                              <Target className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-red-300 hover:bg-red-500/20 p-1"
+                              onClick={() => deleteTab(tab.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex space-x-1 ml-2">
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-blue-300 hover:bg-blue-500/20 p-1"
-                            onClick={() => openFullScreen(tab.id)}
-                          >
-                            <Maximize2 className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-green-300 hover:bg-green-500/20 p-1"
-                            onClick={() => toggleTabStatus(tab.id)}
-                          >
-                            {tab.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-purple-300 hover:bg-purple-500/20 p-1"
-                            onClick={() => openTaskBuilder(tab.id)}
-                          >
-                            <Target className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-red-300 hover:bg-red-500/20 p-1"
-                            onClick={() => deleteTab(tab.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                      </div>
+                      
+                      {/* Tab Preview */}
+                      <div className="h-40 bg-white border-b border-white/10 relative">
+                        {hasPreviewFailed ? (
+                          <div className="w-full h-full bg-slate-700 flex items-center justify-center">
+                            <div className="text-center p-4">
+                              <ExternalLink className="h-8 w-8 text-blue-300 mx-auto mb-2" />
+                              <p className="text-white text-sm">Preview unavailable</p>
+                              <p className="text-blue-200 text-xs">Click fullscreen to view</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <iframe
+                              src={tab.url}
+                              className="w-full h-full border-0 pointer-events-none"
+                              title={tab.title}
+                              onError={() => handleIframeError(tab.id)}
+                              onLoad={() => console.log('Preview loaded:', tab.url)}
+                            />
+                            <div className="absolute inset-0 bg-transparent pointer-events-none"></div>
+                          </>
+                        )}
+                      </div>
+                      
+                      {/* Tab Status */}
+                      <div className="p-3">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className={`flex items-center ${tab.isActive ? 'text-green-300' : 'text-yellow-300'}`}>
+                            <div className={`w-2 h-2 rounded-full mr-2 ${tab.isActive ? 'bg-green-400' : 'bg-yellow-400'}`}></div>
+                            {tab.isActive ? 'Active' : 'Paused'}
+                          </span>
+                          <span className="text-blue-200">
+                            AI Tasks: {tab.aiTasks?.length || 0}
+                          </span>
                         </div>
                       </div>
                     </div>
-                    
-                    {/* Tab Preview */}
-                    <div className="h-40 bg-white border-b border-white/10 relative">
-                      <iframe
-                        src={getIframeUrl(tab.url)}
-                        className="w-full h-full border-0 pointer-events-none"
-                        title={tab.title}
-                        allow="accelerometer; autoplay; camera; clipboard-read; clipboard-write; encrypted-media; fullscreen; geolocation; gyroscope; magnetometer; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
-                        referrerPolicy="unsafe-url"
-                        sandbox="allow-same-origin allow-scripts allow-forms"
-                        loading="lazy"
-                        onLoad={() => console.log('Preview iframe loaded:', tab.url)}
-                        onError={(e) => console.error('Preview iframe error:', e, tab.url)}
-                      />
-                      <div className="absolute inset-0 bg-transparent pointer-events-none"></div>
-                    </div>
-                    
-                    {/* Tab Status */}
-                    <div className="p-3">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className={`flex items-center ${tab.isActive ? 'text-green-300' : 'text-yellow-300'}`}>
-                          <div className={`w-2 h-2 rounded-full mr-2 ${tab.isActive ? 'bg-green-400' : 'bg-yellow-400'}`}></div>
-                          {tab.isActive ? 'Active' : 'Paused'}
-                        </span>
-                        <span className="text-blue-200">
-                          AI Tasks: {tab.aiTasks?.length || 0}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
