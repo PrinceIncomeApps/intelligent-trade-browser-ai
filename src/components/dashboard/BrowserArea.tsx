@@ -17,7 +17,8 @@ import {
   Target,
   Move,
   Square,
-  ExternalLink
+  ExternalLink,
+  RefreshCw
 } from 'lucide-react';
 import { TaskBuilder } from './TaskBuilder';
 
@@ -61,7 +62,8 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
       url: formattedUrl,
       title: formattedUrl.replace(/^https?:\/\//, '').split('/')[0],
       isActive: true,
-      aiTasks: []
+      aiTasks: [],
+      loadingError: false
     };
 
     console.log('Creating new tab:', newTab);
@@ -123,6 +125,96 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
+  const refreshTab = (tabId: number) => {
+    // Force refresh by updating the tab key
+    const updatedGroups = groups.map(group => ({
+      ...group,
+      tabs: group.tabs.map((tab: any) => 
+        tab.id === tabId 
+          ? { ...tab, refreshKey: Date.now() }
+          : tab
+      )
+    }));
+    setGroups(updatedGroups);
+  };
+
+  const WebView = ({ tab, isFullScreen = false }: { tab: any, isFullScreen?: boolean }) => {
+    const [hasError, setHasError] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const handleLoad = () => {
+      setIsLoading(false);
+      setHasError(false);
+    };
+
+    const handleError = () => {
+      setIsLoading(false);
+      setHasError(true);
+    };
+
+    if (hasError) {
+      return (
+        <div className="w-full h-full bg-slate-800 flex flex-col items-center justify-center text-white p-4">
+          <div className="text-center">
+            <X className="h-12 w-12 text-red-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Cannot Load Website</h3>
+            <p className="text-sm text-gray-300 mb-4">
+              This website cannot be embedded due to security restrictions.
+            </p>
+            <div className="space-y-2">
+              <Button
+                onClick={() => openInNewWindow(tab.url)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open in New Tab
+              </Button>
+              <Button
+                onClick={() => {
+                  setHasError(false);
+                  setIsLoading(true);
+                }}
+                variant="outline"
+                className="bg-transparent border-gray-600 text-white hover:bg-gray-700"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full h-full relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-slate-800 flex items-center justify-center z-10">
+            <div className="text-white text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-2"></div>
+              <p className="text-sm">Loading {tab.title}...</p>
+            </div>
+          </div>
+        )}
+        <webview
+          key={`${tab.id}-${tab.refreshKey || 0}`}
+          src={tab.url}
+          className="w-full h-full"
+          onLoad={handleLoad}
+          onError={handleError}
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none'
+          }}
+        />
+        {!isFullScreen && (
+          <div className="absolute inset-0 bg-transparent pointer-events-none"></div>
+        )}
+      </div>
+    );
+  };
+
   // Full screen view
   if (fullScreenTab) {
     const currentTab = selectedGroupData?.tabs.find((tab: any) => tab.id === fullScreenTab);
@@ -137,6 +229,15 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
               <span className="text-blue-200 text-sm">{currentTab?.url}</span>
             </div>
             <div className="flex items-center space-x-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-gray-300 hover:bg-gray-500/20"
+                onClick={() => refreshTab(fullScreenTab)}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Refresh
+              </Button>
               <Button
                 size="sm"
                 variant="ghost"
@@ -179,17 +280,7 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
 
         {/* Full Screen Browser Content */}
         <div className="flex-1 relative">
-          <div className="w-full h-full bg-white">
-            <iframe
-              src={currentTab?.url}
-              className="w-full h-full border-0"
-              title={currentTab?.title}
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads allow-modals allow-orientation-lock allow-pointer-lock allow-presentation allow-popups-to-escape-sandbox allow-storage-access-by-user-activation allow-top-navigation allow-top-navigation-by-user-activation"
-              referrerPolicy="no-referrer-when-downgrade"
-              allow="accelerometer; autoplay; camera; encrypted-media; fullscreen; geolocation; gyroscope; magnetometer; microphone; midi; payment; picture-in-picture; publickey-credentials-get; screen-wake-lock; usb; web-share; xr-spatial-tracking"
-              allowFullScreen
-            />
-          </div>
+          <WebView tab={currentTab} isFullScreen={true} />
           
           {/* Task Builder Overlay */}
           {showTaskBuilder && (
@@ -277,9 +368,9 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
                   <h4 className="text-white font-medium mb-2">Popular Sites to Try:</h4>
                   <div className="space-y-1 text-sm text-blue-200">
                     <div>• google.com</div>
-                    <div>• tradingview.com</div>
-                    <div>• binance.com</div>
                     <div>• example.com</div>
+                    <div>• httpbin.org</div>
+                    <div>• jsonplaceholder.typicode.com</div>
                   </div>
                 </div>
               </div>
@@ -295,6 +386,14 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
                           <p className="text-blue-200 text-sm truncate">{tab.url}</p>
                         </div>
                         <div className="flex space-x-1 ml-2">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-gray-300 hover:bg-gray-500/20 p-1"
+                            onClick={() => refreshTab(tab.id)}
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
                           <Button 
                             size="sm" 
                             variant="ghost" 
@@ -341,15 +440,7 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
                     
                     {/* Tab Preview */}
                     <div className="h-40 bg-white border-b border-white/10 relative">
-                      <iframe
-                        src={tab.url}
-                        className="w-full h-full border-0 pointer-events-none"
-                        title={tab.title}
-                        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads allow-modals allow-orientation-lock allow-pointer-lock allow-presentation allow-popups-to-escape-sandbox allow-storage-access-by-user-activation allow-top-navigation allow-top-navigation-by-user-activation"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        allow="accelerometer; autoplay; camera; encrypted-media; fullscreen; geolocation; gyroscope; magnetometer; microphone; midi; payment; picture-in-picture; publickey-credentials-get; screen-wake-lock; usb; web-share; xr-spatial-tracking"
-                      />
-                      <div className="absolute inset-0 bg-transparent pointer-events-none"></div>
+                      <WebView tab={tab} />
                     </div>
                     
                     {/* Tab Status */}
