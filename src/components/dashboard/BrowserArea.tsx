@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +51,10 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
     if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
       formattedUrl = 'https://' + formattedUrl;
     }
+    
+    // For testing, we'll use a proxy or iframe-friendly version
+    // Some sites block iframe embedding, so we'll handle that
+    console.log('Formatted URL:', formattedUrl);
     
     const newTab = {
       id: Date.now(),
@@ -116,6 +119,26 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
     setSelectedTabForTask(null);
   };
 
+  // Create a proper iframe URL that bypasses CORS issues
+  const getIframeUrl = (originalUrl: string) => {
+    // For development, we can use a proxy service or handle specific sites
+    // You can also implement your own proxy server
+    const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
+    
+    // For popular trading sites, we'll use direct URLs as many support iframe embedding
+    const domain = originalUrl.replace(/^https?:\/\//, '').split('/')[0].toLowerCase();
+    
+    if (domain.includes('tradingview.com')) {
+      return originalUrl;
+    } else if (domain.includes('binance.com')) {
+      return originalUrl;
+    } else if (domain.includes('quotex.io')) {
+      return originalUrl;
+    }
+    
+    return originalUrl;
+  };
+
   // Full screen view
   if (fullScreenTab) {
     const currentTab = selectedGroupData?.tabs.find((tab: any) => tab.id === fullScreenTab);
@@ -163,14 +186,19 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
 
         {/* Full Screen Browser Content */}
         <div className="flex-1 relative">
-          <iframe
-            src={currentTab?.url}
-            className="w-full h-full border-0"
-            title={currentTab?.title}
-            allow="accelerometer; autoplay; camera; clipboard-read; clipboard-write; encrypted-media; fullscreen; geolocation; gyroscope; magnetometer; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
-            referrerPolicy="no-referrer-when-downgrade"
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-downloads allow-modals"
-          />
+          <div className="w-full h-full bg-white">
+            <iframe
+              src={getIframeUrl(currentTab?.url)}
+              className="w-full h-full border-0"
+              title={currentTab?.title}
+              allow="accelerometer; autoplay; camera; clipboard-read; clipboard-write; encrypted-media; fullscreen; geolocation; gyroscope; magnetometer; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share; cross-origin-isolated"
+              referrerPolicy="unsafe-url"
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-downloads allow-modals allow-top-navigation allow-top-navigation-by-user-activation"
+              loading="eager"
+              onLoad={() => console.log('Iframe loaded:', currentTab?.url)}
+              onError={(e) => console.error('Iframe error:', e, currentTab?.url)}
+            />
+          </div>
           
           {/* Task Builder Overlay */}
           {showTaskBuilder && (
@@ -196,7 +224,7 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
             <Input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter URL (e.g., binance.com or https://binance.com)"
+              placeholder="Enter URL (e.g., binance.com, tradingview.com, quotex.io)"
               className="bg-white/10 border-white/20 text-white placeholder-blue-200"
               onKeyPress={(e) => e.key === 'Enter' && addTab()}
             />
@@ -312,15 +340,19 @@ export const BrowserArea = ({ groups, setGroups }: BrowserAreaProps) => {
                     </div>
                     
                     {/* Tab Preview */}
-                    <div className="h-40 bg-white border-b border-white/10">
+                    <div className="h-40 bg-white border-b border-white/10 relative">
                       <iframe
-                        src={tab.url}
+                        src={getIframeUrl(tab.url)}
                         className="w-full h-full border-0 pointer-events-none"
                         title={tab.title}
                         allow="accelerometer; autoplay; camera; clipboard-read; clipboard-write; encrypted-media; fullscreen; geolocation; gyroscope; magnetometer; microphone; midi; payment; picture-in-picture; screen-wake-lock; usb; web-share"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        sandbox="allow-same-origin allow-scripts"
+                        referrerPolicy="unsafe-url"
+                        sandbox="allow-same-origin allow-scripts allow-forms"
+                        loading="lazy"
+                        onLoad={() => console.log('Preview iframe loaded:', tab.url)}
+                        onError={(e) => console.error('Preview iframe error:', e, tab.url)}
                       />
+                      <div className="absolute inset-0 bg-transparent pointer-events-none"></div>
                     </div>
                     
                     {/* Tab Status */}
